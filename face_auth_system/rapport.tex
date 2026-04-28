@@ -1,0 +1,1002 @@
+% =============================================================================
+% Rapport technique – Système d'Authentification par Reconnaissance Faciale
+% Auteur : Fares Jebali
+% Date   : Avril 2026
+% =============================================================================
+\documentclass[12pt,a4paper]{article}
+
+% --- Encodage & langue -------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+
+% --- Mise en page ------------------------------------------------------------
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Typographie -------------------------------------------------------------
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Graphiques et couleurs --------------------------------------------------
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+
+% --- Tableaux ----------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+
+% --- Maths -------------------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% --- Code source -------------------------------------------------------------
+\usepackage{listings}
+\usepackage{inconsolata}
+
+% --- Liens -------------------------------------------------------------------
+\usepackage[colorlinks=true,linkcolor=NavyBlue,urlcolor=NavyBlue,citecolor=NavyBlue]{hyperref}
+
+% --- En-têtes ----------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small Système d'Authentification par Reconnaissance Faciale}
+\fancyhead[R]{\small Fares Jebali}
+\fancyfoot[C]{\thepage}
+
+% --- Sections stylisées ------------------------------------------------------
+\usepackage{titlesec}
+\definecolor{TitleBlue}{RGB}{0,64,128}
+\definecolor{AccentBlue}{RGB}{30,100,180}
+\definecolor{LightGray}{RGB}{245,245,245}
+\definecolor{NavyBlue}{RGB}{0,50,120}
+\definecolor{CodeBg}{RGB}{248,248,248}
+
+\titleformat{\section}
+  {\large\bfseries\color{TitleBlue}}
+  {\thesection}{1em}{}[\vspace{-0.2em}\color{TitleBlue}\hrule\vspace{0.3em}]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{AccentBlue}}
+  {\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\itshape\color{AccentBlue}}
+  {\thesubsubsection}{1em}{}
+
+% --- Style de code -----------------------------------------------------------
+\lstdefinestyle{pycode}{
+  language=Python,
+  backgroundcolor=\color{CodeBg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{TitleBlue}\bfseries,
+  stringstyle=\color{orange!70!black},
+  commentstyle=\color{gray}\itshape,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=4,
+}
+\lstset{style=pycode}
+
+% --- Boîtes colorées ---------------------------------------------------------
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}
+\newtcolorbox{infobox}[1]{
+  colback=AccentBlue!8,
+  colframe=AccentBlue!60,
+  fonttitle=\bfseries,
+  title=#1,
+  arc=4pt,
+}
+\newtcolorbox{formulebox}[1]{
+  colback=TitleBlue!6,
+  colframe=TitleBlue!50,
+  fonttitle=\bfseries,
+  title=#1,
+  arc=4pt,
+}
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+% ---- Page de titre ----------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\Huge\bfseries\color{TitleBlue}
+    Système d'Authentification\\[0.4em]
+    par Reconnaissance Faciale\par}
+
+  \vspace{0.6cm}
+  {\large\color{gray} Rapport Technique Complet\par}
+
+  \vspace{1.5cm}
+  \begin{tikzpicture}
+    \draw[TitleBlue,line width=2pt] (0,0) -- (12,0);
+    \draw[AccentBlue,line width=1pt] (0,-0.3) -- (12,-0.3);
+  \end{tikzpicture}
+
+  \vspace{1.5cm}
+
+  % Architecture overview box
+  \begin{tcolorbox}[
+    colback=LightGray,
+    colframe=TitleBlue,
+    width=0.85\textwidth,
+    arc=6pt,
+    title={\bfseries\color{white} Vue d'ensemble du système},
+    coltitle=white,
+    attach boxed title to top center={yshift=-3mm},
+    boxed title style={colback=TitleBlue,arc=3pt},
+  ]
+    \centering
+    \small
+    \begin{tabular}{ll}
+      \textbf{Langage} & Python 3.12 \\
+      \textbf{Interface} & Tkinter (application desktop) \\
+      \textbf{Deep Learning} & FaceNet, ArcFace (via DeepFace / TensorFlow) \\
+      \textbf{Vision classique} & OpenCV, Dlib, scikit-learn \\
+      \textbf{Sécurité} & AES-256-GCM, PBKDF2-SHA256, BioHashing \\
+      \textbf{Détection anti-spoof} & EAR (blink), LBP texture, FFT deepfake \\
+    \end{tabular}
+  \end{tcolorbox}
+
+  \vspace{2cm}
+
+  {\large\bfseries Fares Jebali\par}
+  \vspace{0.3cm}
+  {\normalsize Avril 2026\par}
+
+  \vfill
+\end{titlepage}
+
+% ---- Table des matières -----------------------------------------------------
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Introduction}
+% =============================================================================
+
+La biométrie faciale est aujourd'hui l'une des modalités biométriques les plus
+utilisées dans les systèmes d'authentification modernes, en raison de sa nature
+non intrusive, de sa facilité de déploiement et de la richesse des informations
+qu'elle fournit. Des applications telles que le déverrouillage de smartphones,
+le contrôle d'accès physique et l'authentification bancaire ont popularisé cette
+technologie.
+
+Le présent projet implémente un \textbf{système d'authentification complet basé
+sur la reconnaissance faciale}, conçu comme une application desktop. Il combine
+des approches classiques (Eigenfaces, LBPH) et profondes (FaceNet, ArcFace),
+une détection de vivacité pour résister aux attaques par présentation, une
+détection de \textit{deepfakes}, et des mécanismes de protection de la vie
+privée (biométrie annulable, chiffrement AES-256-GCM).
+
+\begin{infobox}{Objectifs du système}
+  \begin{itemize}
+    \item Authentifier un utilisateur en temps réel via sa webcam.
+    \item Résister aux attaques par présentation (photos, vidéos, deepfakes).
+    \item Protéger les données biométriques par chiffrement et templates
+          révocables.
+    \item Fournir une interface graphique intuitive et sécurisée.
+  \end{itemize}
+\end{infobox}
+
+% =============================================================================
+\section{Architecture Générale}
+% =============================================================================
+
+\subsection{Structure des modules}
+
+Le système est organisé en couches fonctionnelles indépendantes communicant via
+des interfaces bien définies. La figure~\ref{fig:arch} illustre cette
+organisation.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=0.6cm and 1.2cm,
+  box/.style={rectangle, rounded corners=4pt, minimum width=3.2cm,
+              minimum height=0.8cm, align=center, font=\small\bfseries,
+              draw, thick},
+  layer/.style={rectangle, rounded corners=6pt, draw=gray!50, dashed,
+                inner sep=8pt},
+  arrow/.style={-Stealth, thick, AccentBlue},
+]
+
+% Couche UI
+\node[box, fill=AccentBlue!20, draw=AccentBlue] (ui) {Interface\\Tkinter (app.py)};
+
+% Couche Orchestration
+\node[box, fill=TitleBlue!15, draw=TitleBlue, below=of ui] (enroll) {Enrollment\\Manager};
+\node[box, fill=TitleBlue!15, draw=TitleBlue, right=1.2cm of enroll] (auth) {Authenticator\\(fusion)};
+\node[box, fill=TitleBlue!15, draw=TitleBlue, left=1.2cm of enroll] (sec) {Security\\Monitor};
+
+% Couche Traitement
+\node[box, fill=orange!15, draw=orange!70, below=0.7cm of enroll] (pre) {Preprocessing\\(détection + alignement)};
+\node[box, fill=orange!15, draw=orange!70, right=1.2cm of pre] (deep) {Deep Model\\FaceNet / ArcFace};
+\node[box, fill=orange!15, draw=orange!70, left=1.2cm of pre] (class) {Classical Model\\Eigenfaces / LBPH};
+
+% Couche Anti-spoof
+\node[box, fill=red!12, draw=red!60, below=0.7cm of pre] (live) {Liveness\\(EAR + LBP)};
+\node[box, fill=red!12, draw=red!60, right=1.2cm of live] (deep2) {Deepfake\\(FFT)};
+
+% Couche Sécurité données
+\node[box, fill=green!12, draw=green!60, below=0.7cm of live] (vault) {Vault\\AES-256-GCM};
+\node[box, fill=green!12, draw=green!60, right=1.2cm of vault] (cancel) {Cancelable\\BioHashing};
+\node[box, fill=green!12, draw=green!60, left=1.2cm of vault] (store) {User Store\\(JSON)};
+
+% Flèches
+\draw[arrow] (ui) -- (enroll);
+\draw[arrow] (ui) -- (auth);
+\draw[arrow] (ui) -- (sec);
+\draw[arrow] (enroll) -- (pre);
+\draw[arrow] (enroll) -- (deep);
+\draw[arrow] (enroll) -- (class);
+\draw[arrow] (auth) -- (deep);
+\draw[arrow] (auth) -- (class);
+\draw[arrow] (pre) -- (live);
+\draw[arrow] (pre) -- (deep2);
+\draw[arrow] (enroll) -- (vault);
+\draw[arrow] (enroll) -- (cancel);
+\draw[arrow] (ui) -- (store);
+
+\end{tikzpicture}
+\caption{Architecture modulaire du système d'authentification faciale.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Description des modules}
+
+\begin{longtable}{>{\bfseries}p{3.8cm} p{10cm}}
+\toprule
+Module & Rôle \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+app.py & Interface graphique principale. Gère les écrans (accueil, inscription,
+         connexion, bienvenue) et orchestre les appels aux autres modules. \\[4pt]
+preprocessing.py & Détection de visage (Haar + HOG), extraction de 68 points
+                   repères, alignement affine, normalisation et égalisation
+                   d'histogramme. \\[4pt]
+classical\_model.py & Modèles classiques : Eigenfaces (PCA + k-NN) et LBPH
+                      (Local Binary Pattern Histograms). \\[4pt]
+deep\_model.py & Extraction d'embeddings via FaceNet ou ArcFace (bibliothèque
+                 DeepFace). Comparaison par similarité cosinus. \\[4pt]
+authenticator.py & Fusion pondérée des scores classique et profond.
+                   Décision binaire GRANTED / DENIED. \\[4pt]
+enrollment.py & Inscription des utilisateurs : capture webcam ou images,
+                extraction d'embeddings, stockage dans la galerie et le coffre. \\[4pt]
+liveness.py & Détection de vivacité : comptage de clignements (EAR) et
+              analyse de texture (LBP). \\[4pt]
+deepfake\_detector.py & Détection de visages synthétiques par analyse spectrale
+                        (FFT). \\[4pt]
+cancelable\_biometrics.py & Protection des templates par projection orthogonale
+                             aléatoire (BioHashing) liée à un token secret. \\[4pt]
+vault.py & Coffre chiffré AES-256-GCM avec clé dérivée par PBKDF2-SHA256. \\[4pt]
+security\_monitor.py & Limitation de débit (sliding window) et verrouillage
+                       progressif après tentatives échouées. \\[4pt]
+user\_store.py & Base de données JSON des profils utilisateurs
+                 (nom, prénom, date de naissance). \\[4pt]
+lighting.py & Normalisation de l'éclairage avant traitement. \\[4pt]
+evaluation.py & Calcul des métriques FAR, FRR, EER et courbe ROC. \\[4pt]
+config.py & Source unique de vérité pour tous les hyperparamètres et chemins. \\
+\end{longtable}
+
+% =============================================================================
+\section{Technologies Utilisées}
+% =============================================================================
+
+\subsection{Langage et environnement}
+
+Le projet est entièrement développé en \textbf{Python 3.12}, choisi pour la
+richesse de son écosystème en vision par ordinateur et apprentissage automatique.
+
+\subsection{Bibliothèques principales}
+
+\begin{longtable}{>{\bfseries}p{4cm} p{3.5cm} p{6cm}}
+\toprule
+Bibliothèque & Version & Rôle \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+OpenCV (contrib) & 4.9.0.80 & Détection Haar, LBPH, traitement d'image,
+                               webcam, égalisation d'histogramme. \\[3pt]
+Dlib & 19.24.4 & Détecteur HOG+SVM, prédicteur de 68 points repères faciaux,
+                  alignement affine. \\[3pt]
+DeepFace & 0.0.91 & Wrapper unifié pour FaceNet et ArcFace ;
+                     extraction d'embeddings profonds. \\[3pt]
+TensorFlow & 2.16.1 & Backend de calcul pour les modèles profonds
+                       (FaceNet, ArcFace). \\[3pt]
+scikit-learn & 1.4.2 & PCA (Eigenfaces), k-NN, StandardScaler,
+                        LabelEncoder, Pipeline. \\[3pt]
+NumPy & 1.26.4 & Calcul matriciel, manipulation des embeddings,
+                  FFT, projections orthogonales. \\[3pt]
+SciPy & 1.13.0 & Distance cosinus, distance euclidienne (EAR). \\[3pt]
+cryptography & 42.0.5 & AES-256-GCM (AESGCM), PBKDF2HMAC, hachages
+                         cryptographiques. \\[3pt]
+Pillow & 10.3.0 & Chargement et conversion d'images pour l'interface. \\[3pt]
+Matplotlib / Seaborn & 3.8.4 / 0.13.2 & Tracé des courbes ROC, FAR/FRR
+                                          pour l'évaluation. \\[3pt]
+Pandas & 2.2.2 & Export des métriques d'évaluation en CSV. \\[3pt]
+Tkinter & stdlib & Interface graphique desktop (inclus dans Python). \\
+\end{longtable}
+
+\subsection{Organisation des données sur disque}
+
+\begin{lstlisting}[language={},caption={Arborescence des données persistées}]
+face_auth_system/
+|-- data/
+|   |-- users.json          # Profils utilisateurs (nom, dob)
+|   |-- enrolled_faces/     # Recadrages pour renentrainement classique
+|   |-- logs/               # Journaux d'authentification
+|   |-- vault/              # Fichiers .vault chiffres AES-256-GCM
+|   `-- security_state.json # Etat des verrous et rate-limits
+|-- models/
+|   |-- deep_gallery.pkl    # Galerie d'embeddings (pickle)
+|   |-- eigenfaces.pkl      # Modele Eigenfaces serialise
+|   `-- lbph_model.yml      # Modele LBPH (format OpenCV)
+`-- evaluation/
+    |-- roc_curve.png
+    |-- far_frr_curve.png
+    `-- metrics.csv
+\end{lstlisting}
+
+% =============================================================================
+\section{Revue de Littérature et Concepts Théoriques}
+% =============================================================================
+
+\subsection{Détection de visage}
+
+\subsubsection{Cascades de Haar (Viola \& Jones, 2001)}
+
+La méthode de Viola et Jones~\cite{viola2001} est l'un des algorithmes de
+détection d'objets les plus influents. Elle repose sur trois innovations :
+
+\begin{enumerate}
+  \item \textbf{Image intégrale} : permet de calculer des caractéristiques
+        rectangulaires (features de Haar) en temps constant, indépendamment de
+        la taille de la fenêtre.
+  \item \textbf{AdaBoost} : sélectionne un sous-ensemble de caractéristiques
+        discriminantes parmi des milliers de candidats.
+  \item \textbf{Cascade de classificateurs} : rejette rapidement les zones sans
+        visage dès les premières étapes, réduisant drastiquement le temps de
+        calcul.
+\end{enumerate}
+
+Dans notre implémentation, le fichier
+\texttt{haarcascade\_frontalface\_default.xml} d'OpenCV est chargé via
+\texttt{CascadeClassifier.detectMultiScale}, avec un facteur d'échelle de 1.1
+et un minimum de 5 voisins.
+
+\subsubsection{Détecteur HOG + SVM (Dlib)}
+
+Le détecteur HOG (\textit{Histogram of Oriented Gradients})~\cite{dalal2005}
+calcule, pour chaque cellule d'une image, l'histogramme des orientations des
+gradients locaux. Ces histogrammes sont concaténés en un vecteur de
+caractéristiques et classifiés par un SVM linéaire entraîné sur des exemples
+positifs et négatifs de visages.
+
+Dlib implémente une version optimisée (FHOG) avec un détecteur à fenêtre
+glissante multi-échelle. Notre module \texttt{preprocessing.py} utilise
+\texttt{dlib.get\_frontal\_face\_detector()}.
+
+\subsubsection{Fusion par NMS}
+
+Pour éviter les détections redondantes, notre pipeline fusionne les résultats
+Haar et HOG par \textit{Non-Maximum Suppression} (NMS) avec un seuil IoU de 0,5 :
+seule la boîte englobante de plus grande aire est conservée parmi les boîtes
+se chevauchant fortement.
+
+\subsection{Points repères faciaux et alignement affine}
+
+\subsubsection{Modèle à 68 points (Dlib)}
+
+Le prédicteur de forme de Dlib~\cite{kazemi2014} utilise une forêt de
+régressions d'ensemble (\textit{Ensemble of Regression Trees}) pour localiser
+68 points repères anatomiques sur un visage : contour du visage, sourcils, yeux,
+nez, bouche.
+
+\begin{infobox}{Indices des points oculaires (68 points)}
+  Points 36--41 : œil gauche \quad|\quad Points 42--47 : œil droit
+\end{infobox}
+
+\subsubsection{Alignement affine}
+
+À partir des centres géométriques des deux yeux, une transformation affine 2D
+(rotation, mise à l'échelle, translation) est calculée pour :
+\begin{itemize}
+  \item Placer l'œil gauche à 35\,\% et l'œil droit à 65\,\% de la largeur
+        de l'image de sortie.
+  \item Aligner horizontalement l'axe inter-oculaire.
+\end{itemize}
+
+\begin{formulebox}{Transformation affine d'alignement}
+\[
+  \theta = \arctan\!\left(\frac{y_R - y_L}{x_R - x_L}\right), \quad
+  s = \frac{d_{\text{cible}}}{d_{\text{mesure}}}, \quad
+  M = \text{getRotationMatrix2D}(\text{centre}, \theta, s)
+\]
+où $d_{\text{cible}}$ et $d_{\text{mesure}}$ sont respectivement la distance
+inter-oculaire désirée et mesurée.
+\end{formulebox}
+
+Cette normalisation géométrique améliore considérablement les performances de
+tous les modèles en aval en éliminant les variations de pose frontale.
+
+\subsection{Prétraitement et normalisation}
+
+Après alignement, chaque patch facial passe par les étapes suivantes :
+
+\begin{enumerate}
+  \item \textbf{Redimensionnement} à $128 \times 128$ pixels (\texttt{INTER\_AREA}
+        pour le sous-échantillonnage).
+  \item \textbf{Normalisation de l'éclairage} (module \texttt{lighting.py}) :
+        compensation des variations d'illumination.
+  \item \textbf{Égalisation d'histogramme} (\texttt{cv2.equalizeHist}) :
+        redistribution des niveaux de gris pour maximiser le contraste local.
+  \item Production de trois variantes : image grise, image couleur, image
+        grise normalisée $[0,1]$.
+\end{enumerate}
+
+\subsection{Modèles Classiques de Reconnaissance Faciale}
+
+\subsubsection{Eigenfaces – Analyse en Composantes Principales (Turk \& Pentland, 1991)}
+
+Les Eigenfaces~\cite{turk1991} constituent la première approche de reconnaissance
+faciale basée sur l'apprentissage statistique. Chaque image faciale
+$128 \times 128$ est aplatie en un vecteur de dimension $d = 16\,384$.
+
+\medskip
+\textbf{Entraînement :}
+\begin{enumerate}
+  \item Calcul de la matrice de covariance $C = \frac{1}{n} X^T X$ où $X$
+        est la matrice des images centrées.
+  \item Décomposition en valeurs propres (PCA via scikit-learn) : conservation
+        des $k=150$ premières composantes principales.
+  \item Chaque eigenvector (« eigenface ») capture une direction maximale de
+        variance dans l'espace des visages.
+\end{enumerate}
+
+\textbf{Classification :} projection de la requête dans le sous-espace PCA puis
+classification 1-NN (distance euclidienne). Le score de confiance est dérivé de
+la distance inverse :
+\[
+  \text{score} = \frac{1}{1 + d/10}
+\]
+
+Notre implémentation utilise \texttt{sklearn.decomposition.PCA(whiten=True)}
+dans un \texttt{Pipeline} scikit-learn avec \texttt{StandardScaler} et
+\texttt{KNeighborsClassifier}.
+
+\subsubsection{LBPH – Local Binary Pattern Histograms (Ahonen et al., 2006)}
+
+Les LBPH~\cite{ahonen2006} encodent la texture locale d'une image en comparant
+chaque pixel à ses voisins selon un motif circulaire de rayon $R$ et $P$
+voisins :
+
+\begin{formulebox}{Opérateur LBP}
+\[
+  \text{LBP}_{P,R}(x_c, y_c) = \sum_{p=0}^{P-1} s(g_p - g_c) \cdot 2^p,
+  \quad s(u) = \begin{cases} 1 & u \geq 0 \\ 0 & u < 0 \end{cases}
+\]
+où $g_c$ est le niveau de gris du pixel central et $g_p$ celui du $p$-ième voisin.
+\end{formulebox}
+
+L'image est divisée en une grille de $8 \times 8$ cellules. Pour chaque cellule,
+un histogramme de 256 bins est calculé sur les codes LBP, puis concaténé en un
+vecteur de description global. La classification se fait par distance $\chi^2$
+(intégrée dans le \texttt{LBPHFaceRecognizer} d'OpenCV).
+
+\textbf{Paramètres utilisés :} $R=1$, $P=8$, grille $8\times 8$, seuil de
+confiance maximal normalisé à 100.
+
+\subsection{Modèles Profonds de Reconnaissance Faciale}
+
+\subsubsection{FaceNet (Schroff et al., 2015)}
+
+FaceNet~\cite{schroff2015} est un réseau de neurones profond entraîné avec une
+\textit{triplet loss} pour produire des embeddings de dimension 128 (ou 512)
+dans un espace euclidien tel que :
+\begin{itemize}
+  \item Les embeddings du \textit{même} individu sont proches ($\|f(x_a) -
+        f(x_p)\|_2^2 < \|f(x_a) - f(x_n)\|_2^2 + \alpha$).
+  \item Les embeddings d'\textit{individus différents} sont éloignés.
+\end{itemize}
+
+\begin{formulebox}{Triplet Loss}
+\[
+  \mathcal{L} = \sum_i \left[\, \|f(x_i^a) - f(x_i^p)\|_2^2 -
+                \|f(x_i^a) - f(x_i^n)\|_2^2 + \alpha \,\right]_+
+\]
+\end{formulebox}
+
+\subsubsection{ArcFace (Deng et al., 2019)}
+
+ArcFace~\cite{deng2019} améliore FaceNet en ajoutant une marge angulaire $m$
+directement dans l'espace des angles entre embeddings et poids du classifieur :
+
+\begin{formulebox}{ArcFace Loss}
+\[
+  \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} \log
+  \frac{e^{s(\cos(\theta_{y_i} + m))}}
+       {e^{s(\cos(\theta_{y_i} + m))} + \sum_{j \neq y_i} e^{s \cos\theta_j}}
+\]
+\end{formulebox}
+
+Cette formulation produit des embeddings avec une meilleure séparabilité
+inter-classe et une plus grande compacité intra-classe que FaceNet.
+
+\subsubsection{Extraction et comparaison d'embeddings}
+
+Dans notre système, la bibliothèque \textbf{DeepFace} est utilisée comme
+abstraction sur TensorFlow :
+
+\begin{lstlisting}[caption={Extraction d'embedding (deep\_model.py)}]
+result = DeepFace.represent(
+    img_path=face_img,
+    model_name=self.backend,   # "Facenet" ou "ArcFace"
+    enforce_detection=False,
+    detector_backend="skip",   # pre-cropped par notre pipeline
+)
+embedding = np.array(result[0]["embedding"], dtype=np.float32)
+embedding /= np.linalg.norm(embedding)  # normalisation L2
+\end{lstlisting}
+
+La \textbf{similarité cosinus} est utilisée pour la comparaison :
+\[
+  \text{sim}(\mathbf{a}, \mathbf{b}) = 1 - \frac{\mathbf{a} \cdot \mathbf{b}}
+  {\|\mathbf{a}\|\,\|\mathbf{b}\|}
+  \quad\in [0, 1]
+\]
+
+Un seuil de distance cosinus de 0.40 est appliqué : si la distance est
+inférieure au seuil, les deux visages sont considérés comme appartenant à la
+même identité.
+
+\subsection{Fusion de Scores}
+
+\subsubsection{Motivation}
+
+Chaque modèle capture des caractéristiques différentes :
+\begin{itemize}
+  \item Les modèles classiques sont robustes, légers et interprétables.
+  \item Les modèles profonds sont plus discriminants et généralisent mieux.
+\end{itemize}
+
+La \textbf{fusion de scores} combine les deux en exploitant leur
+complémentarité.
+
+\subsubsection{Fusion linéaire pondérée}
+
+\begin{formulebox}{Score fusionné}
+\[
+  s_{\text{fused}} = w_c \cdot s_{\text{classical}} + w_d \cdot s_{\text{deep}},
+  \quad w_c + w_d = 1
+\]
+\[
+  w_c = 0.4, \quad w_d = 0.6, \quad \text{seuil de décision} = 0.6
+\]
+\end{formulebox}
+
+Une pénalité de 50\,\% est appliquée sur le score fusionné si l'identité
+revendiquée ne correspond pas à celle retournée par le modèle profond.
+
+\subsection{Détection de Vivacité (\textit{Liveness Detection})}
+
+La détection de vivacité vise à distinguer un visage réel d'une attaque par
+présentation (\textit{Presentation Attack}) : photo imprimée, vidéo rejouée,
+masque 3D.
+
+\subsubsection{Eye Aspect Ratio (EAR) – Détection de clignements}
+
+L'EAR~\cite{soukupova2016} mesure le rapport entre la hauteur et la largeur
+d'un œil à partir des 6 points repères oculaires :
+
+\begin{formulebox}{Eye Aspect Ratio}
+\[
+  \text{EAR} = \frac{\|p_2 - p_6\| + \|p_3 - p_5\|}{2 \cdot \|p_1 - p_4\|}
+\]
+\end{formulebox}
+
+Lors d'un clignement, l'EAR chute brusquement puis remonte. Une photo ou un
+écran ne peut pas reproduire ce comportement temporel. Notre détecteur exige
+\textbf{1 clignement confirmé} sur au moins 3 frames consécutives avec EAR $<$
+0.25 pour valider la vivacité.
+
+\subsubsection{Analyse de texture LBP}
+
+La texture d'un vrai visage est plus riche et variée que celle d'une impression
+sur papier ou d'un écran. Un descripteur LBP en grille $3\times 3$ est calculé
+(vecteur de $9 \times 256 = 2304$ dimensions) et analysé :
+\begin{itemize}
+  \item Si un classifieur sklearn entraîné est disponible, \texttt{predict\_proba}
+        donne une probabilité de vivacité.
+  \item Sinon, une heuristique basée sur la \textbf{variance de l'histogramme}
+        LBP est utilisée : plus la variance est élevée, plus le visage est
+        probablement réel.
+\end{itemize}
+
+\subsection{Détection de Deepfakes par Analyse Spectrale}
+
+\subsubsection{Artefacts des réseaux GAN}
+
+Les visages générés par GAN (\textit{Generative Adversarial Network}) présentent
+des artefacts hautes fréquences liés au sur-échantillonnage par convolution
+transposée : des motifs en damier (\textit{checkerboard artifacts}) se
+manifestent dans le spectre fréquentiel~\cite{li2021}.
+
+\subsubsection{Pipeline FFT}
+
+Notre détecteur (\texttt{deepfake\_detector.py}) calcule trois métriques sur
+le spectre log-Fourier 2D de l'image :
+
+\begin{longtable}{>{\bfseries}p{4.5cm} p{9cm}}
+\toprule
+Métrique & Définition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Ratio hautes fréquences & Fraction de l'énergie spectrale en dehors d'un
+                          disque central de rayon 30\,\% (GAN $\Rightarrow$
+                          plus d'HF). \\[4pt]
+Score checkerboard & Énergie moyenne aux coins de Nyquist de l'image
+                     (artefacts de sur-échantillonnage GAN). \\[4pt]
+Platitude spectrale & Inverse de la variance radiale du spectre
+                      (vraies images suivent une loi en $1/f$,
+                       les GAN produisent un spectre plus plat). \\
+\end{longtable}
+
+\begin{formulebox}{Score de fausseté}
+\[
+  s_{\text{fake}} = 0.4 \cdot s_{\text{HF}} + 0.4 \cdot s_{\text{CB}} +
+                    0.2 \cdot s_{\text{flat}}
+\]
+Si $s_{\text{fake}} \geq 0.55$, le visage est classé comme synthétique.
+\end{formulebox}
+
+\subsection{Biométrie Annulable (\textit{Cancelable Biometrics})}
+
+\subsubsection{Problématique}
+
+Les templates biométriques sont permanents : si un embedding facial est
+compromis, l'individu ne peut pas ``renouveler'' son visage. La
+\textbf{biométrie annulable}~\cite{ratha2001} répond à ce problème en
+transformant le template de manière non-inversible mais reproductible.
+
+\subsubsection{BioHashing par projection orthogonale}
+
+Notre implémentation suit le paradigme BioHashing~\cite{jin2004} :
+
+\begin{enumerate}
+  \item Un \textbf{token secret} (PIN, carte à puce) est haché par SHA-256
+        pour obtenir une graine déterministe.
+  \item Une matrice de projection orthogonale aléatoire $P \in \mathbb{R}^{256
+        \times 512}$ est générée par décomposition QR d'une matrice gaussienne
+        secrète.
+  \item L'embedding $\mathbf{e} \in \mathbb{R}^{512}$ est projeté :
+        $\mathbf{v} = P\mathbf{e} \in \mathbb{R}^{256}$.
+  \item Binarisation par signe : $b_i = \mathbf{1}[v_i \geq 0]$.
+\end{enumerate}
+
+\begin{formulebox}{Template protégé}
+\[
+  \mathbf{t} = \text{sign}(P_{\text{token}} \cdot \mathbf{e}) \in \{0,1\}^{256}
+\]
+\end{formulebox}
+
+\textbf{Propriétés garanties :}
+\begin{itemize}
+  \item \textbf{Non-inversibilité} : sans le token, $\mathbf{e}$ ne peut pas
+        être récupéré depuis $\mathbf{t}$.
+  \item \textbf{Révocabilité} : un nouveau token génère un template
+        décorrélé du précédent.
+  \item \textbf{Diversité} : différents tokens $\Rightarrow$ différents templates
+        $\Rightarrow$ impossible de relier deux systèmes.
+\end{itemize}
+
+La comparaison entre deux templates binaires utilise la
+\textbf{similarité de Hamming normalisée} :
+\[
+  \text{sim}_H(\mathbf{t}_1, \mathbf{t}_2) = \frac{1}{n} \sum_{i=1}^n
+  \mathbf{1}[t_{1,i} = t_{2,i}]
+\]
+
+\subsection{Coffre-Fort Chiffré (AES-256-GCM)}
+
+\subsubsection{Chiffrement authentifié}
+
+Les templates protégés sont stockés chiffrés avec
+\textbf{AES-256-GCM}~\cite{nist2007} (AEAD : Authenticated Encryption with
+Associated Data), qui garantit à la fois la confidentialité et l'intégrité.
+
+\subsubsection{Dérivation de clé PBKDF2}
+
+La clé AES de 256 bits est dérivée du mot de passe utilisateur via
+\textbf{PBKDF2-HMAC-SHA256}~\cite{rfc8018} avec 100\,000 itérations et un
+sel aléatoire de 16 octets :
+
+\begin{formulebox}{Dérivation de clé}
+\[
+  k = \text{PBKDF2}(\text{password}, \text{salt}, \text{iter}=100\,000,
+  \text{len}=32, \text{PRF}=\text{HMAC-SHA256})
+\]
+\end{formulebox}
+
+\subsubsection{Format de fichier}
+
+Chaque utilisateur dispose d'un fichier \texttt{.vault} dont le format binaire
+est :
+\[
+  \underbrace{\text{salt}}_{\text{16 B}} \;\|\;
+  \underbrace{\text{nonce}}_{\text{12 B}} \;\|\;
+  \underbrace{\text{ciphertext + GCM tag}}_{\text{variable}}
+\]
+
+\subsection{Moniteur de Sécurité}
+
+Le module \texttt{security\_monitor.py} implémente deux politiques de sécurité
+complémentaires :
+
+\begin{enumerate}
+  \item \textbf{Limitation de débit (sliding window)} : au plus 3 tentatives
+        par fenêtre glissante de 30 secondes. La liste des timestamps est
+        filtrée à chaque contrôle.
+  \item \textbf{Verrouillage progressif} : après 5 tentatives consécutives
+        échouées, le compte est verrouillé pendant 5 minutes. L'état survit
+        aux redémarrages grâce à une persistance JSON.
+\end{enumerate}
+
+\subsection{Évaluation des Systèmes Biométriques}
+
+Les métriques standard ISO/IEC 19795 pour l'évaluation biométrique sont
+implémentées dans \texttt{evaluation.py} :
+
+\begin{longtable}{>{\bfseries}p{4cm} p{9.5cm}}
+\toprule
+Métrique & Définition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+FAR (\textit{False Accept Rate}) & Taux de faux positifs : fraction des
+  comparaisons imposteur acceptées. $\text{FAR} = \text{FP}/(\text{FP}+\text{TN})$ \\[4pt]
+FRR (\textit{False Reject Rate}) & Taux de faux négatifs : fraction des
+  comparaisons authentiques rejetées. $\text{FRR} = \text{FN}/(\text{FN}+\text{TP})$ \\[4pt]
+EER (\textit{Equal Error Rate}) & Seuil où FAR $=$ FRR ; indicateur scalaire
+  de performance globale. \\[4pt]
+Courbe ROC & TPR en fonction de FPR pour tous les seuils ; aire sous la
+  courbe (AUC) proche de 1 $\Rightarrow$ meilleur système. \\
+\end{longtable}
+
+% =============================================================================
+\section{Flux d'Authentification}
+% =============================================================================
+
+\subsection{Inscription (\textit{Enrollment})}
+
+\begin{enumerate}
+  \item L'utilisateur saisit son prénom, nom et date de naissance.
+  \item 10 images sont capturées via la webcam (ou fournies comme fichiers).
+  \item Pour chaque image : détection, alignement, normalisation.
+  \item Extraction de l'embedding FaceNet/ArcFace moyen sur les 10 images.
+  \item L'embedding est projeté via BioHashing (token secret de l'utilisateur).
+  \item Le template protégé est chiffré AES-256-GCM et stocké dans le vault.
+  \item L'embedding brut est stocké dans la galerie pickle pour l'identification.
+  \item Les recadrages faciaux sont sauvegardés pour le réentraînement classique.
+  \item Le profil (nom, dob) est enregistré dans \texttt{users.json}.
+\end{enumerate}
+
+\subsection{Authentification}
+
+\begin{enumerate}
+  \item Le moniteur de sécurité vérifie l'absence de verrouillage et de
+        rate-limiting.
+  \item Vivacité : clignement requis (EAR) sur la flux vidéo en temps réel.
+  \item Détection de deepfake (FFT) sur chaque frame.
+  \item Preprocessing : détection, alignement, normalisation.
+  \item \textbf{Pipeline profond} : identification dans la galerie par
+        similarité cosinus $\Rightarrow$ identité + score $s_d$.
+  \item \textbf{Pipeline classique} (si modèles entraînés) : LBPH ou
+        Eigenfaces $\Rightarrow$ score $s_c$.
+  \item Fusion : $s_f = 0.4 \, s_c + 0.6 \, s_d$.
+  \item Décision : GRANTED si $s_f \geq 0.6$, DENIED sinon.
+  \item Journalisation et mise à jour du moniteur de sécurité.
+\end{enumerate}
+
+Le seuil de confirmation (\textit{streak}) est fixé à 3 frames consécutives
+positives pour réduire les faux positifs transitoires.
+
+% =============================================================================
+\section{Interface Utilisateur}
+% =============================================================================
+
+L'interface est construite avec \textbf{Tkinter}, la bibliothèque graphique
+standard de Python, sans dépendance externe supplémentaire.
+
+\subsection{Écrans}
+
+\begin{longtable}{>{\bfseries}p{3.5cm} p{10cm}}
+\toprule
+Écran & Description \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+HomeScreen & Écran d'accueil avec boutons ``S'identifier'' et
+             ``Créer un compte''. Palette sombre, typographie minimaliste. \\[4pt]
+RegisterScreen & Formulaire de saisie du profil utilisateur + capture
+                 webcam guidée. Indicateur de progression des captures. \\[4pt]
+LoginScreen & Flux vidéo temps réel avec overlay de statut, barre de
+              confirmation progressive et indicateurs de vivacité. \\[4pt]
+WelcomeScreen & Écran de succès post-authentification : coche verte, nom
+                complet, date de naissance, bouton de déconnexion. \\
+\end{longtable}
+
+\subsection{Design}
+
+Le design applique un thème sombre cohérent (\texttt{BG = \#0d0d0d},
+\texttt{TEXT = \#f0f0f0}) avec une typographie épurée. Les composants
+réutilisables (\texttt{\_lbl}, \texttt{\_btn}) centralisent la cohérence visuelle.
+Un système de confirmation par « streak » (3 frames consécutives positives)
+avec barre de progression visuelle améliore l'expérience utilisateur.
+
+% =============================================================================
+\section{Tests}
+% =============================================================================
+
+Le projet dispose d'une suite de tests unitaires et d'intégration (\texttt{pytest}) :
+
+\begin{longtable}{>{\bfseries}p{5cm} p{9cm}}
+\toprule
+Fichier de test & Couverture \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+test\_authenticator.py & Fusion de scores, pénalité d'identité, seuils. \\[3pt]
+test\_cancelable\_biometrics.py & Reproductibilité de la projection, révocabilité,
+                                   similarité de Hamming. \\[3pt]
+test\_evaluation.py & Calcul FAR, FRR, EER sur des jeux de données synthétiques. \\[3pt]
+test\_security\_monitor.py & Verrouillage progressif, rate-limiting, persistance. \\[3pt]
+test\_deepfake\_detector.py & Score FFT sur images synthétiques vs réelles. \\[3pt]
+test\_liveness.py & EAR blink detection, heuristique LBP texture. \\[3pt]
+test\_vault.py & Chiffrement/déchiffrement AES-GCM, résistance aux mauvais
+                 mots de passe. \\
+\end{longtable}
+
+% =============================================================================
+\section{Sécurité et Vie Privée}
+% =============================================================================
+
+\subsection{Modèle de menace}
+
+Le système est conçu pour résister aux attaques suivantes :
+
+\begin{itemize}
+  \item \textbf{Présentation d'artefact} (photo, vidéo) : détecté par EAR.
+  \item \textbf{Deepfake} : détecté par analyse spectrale FFT.
+  \item \textbf{Usurpation de texture LBP} : contrecarré par la vérification
+        de texture.
+  \item \textbf{Vol de base de données} : les templates sont chiffrés
+        AES-256-GCM ; les embeddings bruts ne permettent pas de reconstruire
+        les images originales.
+  \item \textbf{Réutilisation de template compromis} : la biométrie annulable
+        permet l'émission d'un nouveau token.
+  \item \textbf{Brute force} : le moniteur de sécurité limite les tentatives
+        et impose des verrouillages.
+  \item \textbf{Liaison inter-systèmes} : des tokens différents génèrent des
+        templates décorrélés sur différents systèmes.
+\end{itemize}
+
+\subsection{Conformité RGPD}
+
+La présence d'un fichier de consentement (\texttt{consent.json}) et l'absence
+de stockage d'images biométriques brutes en clair (seuls les embeddings
+chiffrés sont conservés) s'inscrivent dans les principes de minimisation et de
+protection by design du RGPD.
+
+% =============================================================================
+\section{Conclusion}
+% =============================================================================
+
+Ce projet démontre la faisabilité d'un système d'authentification faciale
+complet, sécurisé et respectueux de la vie privée, intégrant :
+
+\begin{itemize}
+  \item Une \textbf{double approche} (classique + profonde) avec fusion de
+        scores pour une robustesse accrue.
+  \item Une \textbf{chaîne anti-spoof} multicouche (vivacité temporelle, texture
+        spatiale, analyse spectrale deepfake).
+  \item Une \textbf{protection cryptographique} des données biométriques
+        (AES-256-GCM, PBKDF2, BioHashing révocable).
+  \item Un \textbf{moniteur de sécurité} résistant aux attaques par force brute.
+  \item Une \textbf{interface graphique} temps réel intégrée.
+\end{itemize}
+
+Les perspectives d'amélioration incluent l'intégration d'une détection de
+vivacité 3D (estimation de la profondeur), l'utilisation de modèles plus
+récents (ArcFace R100, ElasticFace), et le déploiement sur une architecture
+client-serveur avec authentification multi-facteurs.
+
+% =============================================================================
+% Bibliographie
+% =============================================================================
+\newpage
+\begin{thebibliography}{99}
+
+\bibitem{viola2001}
+P. Viola and M. Jones, ``Rapid object detection using a boosted cascade of
+simple features,'' \textit{Proc. CVPR}, 2001.
+
+\bibitem{dalal2005}
+N. Dalal and B. Triggs, ``Histograms of oriented gradients for human
+detection,'' \textit{Proc. CVPR}, 2005.
+
+\bibitem{kazemi2014}
+V. Kazemi and J. Sullivan, ``One millisecond face alignment with an ensemble
+of regression trees,'' \textit{Proc. CVPR}, 2014.
+
+\bibitem{turk1991}
+M. Turk and A. Pentland, ``Eigenfaces for recognition,''
+\textit{Journal of Cognitive Neuroscience}, vol.~3, no.~1, 1991.
+
+\bibitem{ahonen2006}
+T. Ahonen, A. Hadid, and M. Pietikäinen, ``Face description with local binary
+patterns: Application to face recognition,'' \textit{IEEE TPAMI},
+vol.~28, no.~12, 2006.
+
+\bibitem{schroff2015}
+F. Schroff, D. Kalenichenko, and J. Philbin, ``FaceNet: A unified embedding
+for face recognition and clustering,'' \textit{Proc. CVPR}, 2015.
+
+\bibitem{deng2019}
+J. Deng, J. Guo, N. Xue, and S. Zafeiriou, ``ArcFace: Additive angular
+margin loss for deep face recognition,'' \textit{Proc. CVPR}, 2019.
+
+\bibitem{soukupova2016}
+T. Soukupova and J. Cech, ``Real-time eye blink detection using facial
+landmarks,'' \textit{Computer Vision Winter Workshop}, 2016.
+
+\bibitem{li2021}
+L. Li \textit{et al.}, ``Thinking in frequency: Face forgery detection by
+mining frequency-aware clues,'' \textit{Proc. ECCV}, 2020.
+
+\bibitem{ratha2001}
+N. K. Ratha, J. H. Connell, and R. M. Bolle, ``Enhancing security and privacy
+in biometrics-based authentication systems,'' \textit{IBM Systems Journal},
+vol.~40, no.~3, 2001.
+
+\bibitem{jin2004}
+A. T. B. Jin, D. N. C. Ling, and A. Goh, ``Biohashing: Two factor
+authentication featuring fingerprint data and tokenised random number,''
+\textit{Pattern Recognition}, vol.~37, no.~11, 2004.
+
+\bibitem{nist2007}
+M. Dworkin, ``Recommendation for Block Cipher Modes of Operation:
+Galois/Counter Mode (GCM) and GMAC,'' NIST SP 800-38D, 2007.
+
+\bibitem{rfc8018}
+K. Moriarty, B. Kaliski, and A. Rusch, ``PKCS \#5: Password-Based
+Cryptography Specification Version 2.1,'' RFC 8018, 2017.
+
+\end{thebibliography}
+
+\end{document}
