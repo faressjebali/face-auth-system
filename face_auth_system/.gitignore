@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Compiled models & biometric data
+models/*.pkl
+models/*.yml
+models/*.h5
+models/*.pt
+
+# User & personal data
+data/users.json
+data/keys/
+data/vault/
+data/consent.json
+
+# Logs
+data/logs/*.log
+data/logs/*.json
+
+# Enrolled face images (biometric)
+data/enrolled_faces/*
+!data/enrolled_faces/.gitkeep
+
+# Dlib landmark model (large binary, download separately)
+shape_predictor_68_face_landmarks.dat
+
+# Evaluation outputs
+evaluation/*.png
+evaluation/*.csv
+
+# Internal / tooling
+.impeccable.md
+
+# OS
+.DS_Store
+Thumbs.db
