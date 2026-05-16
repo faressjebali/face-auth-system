@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS AUTH — Biometric Access Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Persistent background effects ─────────────────────────── -->
+  <canvas id="neural-canvas"></canvas>
+  <div class="hud-grid"></div>
+  <div class="aurora"></div>
+  <div class="scanlines"></div>
+  <div class="wipe-overlay" id="wipe"></div>
+  <div class="toast" id="toast"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SCREEN: HOME
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-home" class="screen active">
+    <div class="app">
+
+      <!-- ── Left panel ────────────────────────────────────────── -->
+      <div class="left-panel">
+
+        <div class="sys-label">
+          <div class="label-rule"></div>
+          <span class="label-text">NEXUS Security Protocol v4.2</span>
+          <div class="label-rule rev"></div>
+        </div>
+
+        <h1 class="wordmark">
+          NEXUS
+          <span class="wordmark-sub">AUTH</span>
+        </h1>
+
+        <p class="tagline">Biometric Access Control System</p>
+
+        <div class="status-block">
+          <div class="status-header">System Status</div>
+          <div class="status-row">
+            <div class="status-dot"></div>
+            <div class="status-text-wrap">
+              <span id="status-text">INITIALIZING</span>
+              <span class="cursor"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-val">99.7%</div>
+            <div class="metric-key">Accuracy</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">0.1%</div>
+            <div class="metric-key">FAR</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">AES-256</div>
+            <div class="metric-key">Vault Enc.</div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn-primary" id="btn-create">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+              <line x1="6.5" y1="1" x2="6.5" y2="12"/>
+              <line x1="1" y1="6.5" x2="12" y2="6.5"/>
+            </svg>
+            CREATE ACCOUNT
+          </button>
+
+          <button class="btn-secondary" id="btn-login">
+            <span class="btn-inner">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+                   stroke="currentColor" stroke-width="1.2">
+                <circle cx="6.5" cy="4.5" r="2.5"/>
+                <path d="M1 12c0-3.04 2.46-5.5 5.5-5.5S12 8.96 12 12"
+                      stroke-linecap="round"/>
+              </svg>
+              LOGIN WITH FACE
+            </span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ── Right panel: biometric ring ──────────────────────── -->
+      <div class="right-panel">
+        <div class="ring-wrap">
+
+          <div class="hud-corner tl"></div>
+          <div class="hud-corner tr"></div>
+          <div class="hud-corner bl"></div>
+          <div class="hud-corner br"></div>
+
+          <div class="hud-data tl">
+            <div><span class="hud-key">SYS </span>NEXUS.AUTH.v4.2</div>
+            <div><span class="hud-key">ENC </span>AES-256-GCM</div>
+            <div><span class="hud-key">ALG </span>FACENET+ARCFACE</div>
+          </div>
+          <div class="hud-data br">
+            <div>99.73%<span class="hud-key"> ACC</span></div>
+            <div>0.004<span class="hud-key"> EER</span></div>
+            <div>68<span class="hud-key"> LANDMARKS</span></div>
+          </div>
+
+          <svg class="ring-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="sweep-trail" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stop-color="#00F5FF" stop-opacity="0"/>
+                <stop offset="100%" stop-color="#00F5FF" stop-opacity="0.32"/>
+              </linearGradient>
+              <filter id="fx-cx" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="fx-vt" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="fx-dot" x="-120%" y="-120%" width="340%" height="340%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- Pulse expand rings -->
+            <circle class="pulse-ring" cx="200" cy="200" r="70"
+                    fill="none" stroke="#00F5FF" stroke-width="1" stroke-opacity="0.6"/>
+            <circle class="pulse-ring" cx="200" cy="200" r="70"
+                    fill="none" stroke="#00F5FF" stroke-width="0.8" stroke-opacity="0.4"/>
+
+            <!-- Outer ring: slow CW dashed, cyan -->
+            <g class="rot-cw-slow">
+              <circle cx="200" cy="200" r="180" fill="none" stroke="#00F5FF"
+                      stroke-width="1" stroke-dasharray="22 10" stroke-opacity="0.42"
+                      filter="url(#fx-cx)"/>
+              <line x1="200" y1="22" x2="200" y2="36" stroke="#00F5FF" stroke-width="2" stroke-opacity="0.9"/>
+              <line x1="200" y1="22" x2="200" y2="36" stroke="#00F5FF" stroke-width="2" stroke-opacity="0.9" transform="rotate(90 200 200)"/>
+              <line x1="200" y1="22" x2="200" y2="36" stroke="#00F5FF" stroke-width="2" stroke-opacity="0.9" transform="rotate(180 200 200)"/>
+              <line x1="200" y1="22" x2="200" y2="36" stroke="#00F5FF" stroke-width="2" stroke-opacity="0.9" transform="rotate(270 200 200)"/>
+            </g>
+
+            <!-- Minor tick ring (static, 36 ticks) -->
+            <g stroke="#00F5FF" stroke-width="0.5" stroke-opacity="0.18">
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(0 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(10 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(20 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(30 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(40 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(50 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(60 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(70 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(80 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(90 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(100 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(110 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(120 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(130 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(140 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(150 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(160 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(170 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(180 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(190 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(200 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(210 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(220 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(230 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(240 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(250 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(260 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(270 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(280 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(290 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(300 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(310 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(320 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(330 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(340 200 200)"/>
+              <line x1="200" y1="18" x2="200" y2="26" transform="rotate(350 200 200)"/>
+            </g>
+
+            <!-- Middle ring: CCW violet long dashes -->
+            <g class="rot-ccw-mid">
+              <circle cx="200" cy="200" r="150" fill="none" stroke="#7B2FFF"
+                      stroke-width="1.5" stroke-dasharray="58 20" stroke-opacity="0.52"
+                      filter="url(#fx-vt)"/>
+              <circle cx="200" cy="52" r="3.5" fill="#7B2FFF"
+                      filter="url(#fx-vt)" opacity="0.8"/>
+            </g>
+
+            <!-- Inner ring: fast CW thin cyan -->
+            <g class="rot-cw-fast">
+              <circle cx="200" cy="200" r="116" fill="none" stroke="#00F5FF"
+                      stroke-width="0.7" stroke-dasharray="9 15" stroke-opacity="0.32"/>
+              <circle cx="200" cy="86" r="2.5" fill="#00F5FF" opacity="0.65"/>
+            </g>
+
+            <!-- Radar sweep -->
+            <path d="M200,200 L200,32 A168,168 0 0,1 281.9,52.8 Z"
+                  fill="rgba(0,245,255,0.07)">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 200 200" to="360 200 200" dur="3s" repeatCount="indefinite"/>
+            </path>
+            <line x1="200" y1="200" x2="200" y2="32"
+                  stroke="#00F5FF" stroke-width="0.9" stroke-opacity="0.72">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 200 200" to="360 200 200" dur="3s" repeatCount="indefinite"/>
+            </line>
+            <circle cx="200" cy="32" r="2.5" fill="#00F5FF"
+                    filter="url(#fx-dot)" opacity="0.9">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 200 200" to="360 200 200" dur="3s" repeatCount="indefinite"/>
+            </circle>
+
+            <!-- Orbiting particles -->
+            <circle cx="290" cy="200" r="4.5" fill="#00F5FF"
+                    filter="url(#fx-dot)" opacity="0.88">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 200 200" to="360 200 200" dur="4s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="200" cy="60" r="3.5" fill="#7B2FFF"
+                    filter="url(#fx-vt)" opacity="0.78">
+              <animateTransform attributeName="transform" type="rotate"
+                from="120 200 200" to="480 200 200" dur="7s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="200" cy="32" r="2.5" fill="#00F5FF" opacity="0.48">
+              <animateTransform attributeName="transform" type="rotate"
+                from="240 200 200" to="600 200 200" dur="11s" repeatCount="indefinite"/>
+            </circle>
+
+            <!-- Center face target -->
+            <circle cx="200" cy="200" r="72"
+                    fill="#030308" stroke="rgba(0,245,255,0.16)" stroke-width="1"/>
+            <g class="xhair">
+              <line x1="152" y1="200" x2="248" y2="200"
+                    stroke="#00F5FF" stroke-width="0.65" stroke-opacity="0.5"/>
+              <line x1="200" y1="152" x2="200" y2="248"
+                    stroke="#00F5FF" stroke-width="0.65" stroke-opacity="0.5"/>
+              <g stroke="#00F5FF" stroke-width="1.1" stroke-opacity="0.65" fill="none">
+                <polyline points="152,207 152,200 159,200"/>
+                <polyline points="248,207 248,200 241,200"/>
+                <polyline points="193,152 200,152 200,159"/>
+                <polyline points="193,248 200,248 200,241"/>
+              </g>
+            </g>
+
+            <!-- Face schematic -->
+            <g transform="translate(200,200)" fill="none"
+               stroke="#00F5FF" stroke-width="0.75" stroke-opacity="0.42">
+              <ellipse rx="27" ry="36" cy="-3"/>
+              <ellipse cx="-9.5" cy="-10" rx="6" ry="3.5"/>
+              <ellipse cx="9.5"  cy="-10" rx="6" ry="3.5"/>
+              <path d="M-3,1 L0,10 L3,1" stroke-opacity="0.28"/>
+              <path d="M-8,20 Q0,26 8,20" stroke-opacity="0.22"/>
+            </g>
+
+            <!-- Landmark dots -->
+            <g fill="#00F5FF" opacity="0.52" filter="url(#fx-dot)">
+              <circle cx="179" cy="189" r="1.4"/>
+              <circle cx="186" cy="187" r="1.4"/>
+              <circle cx="194" cy="189" r="1.4"/>
+              <circle cx="206" cy="189" r="1.4"/>
+              <circle cx="214" cy="187" r="1.4"/>
+              <circle cx="221" cy="189" r="1.4"/>
+              <circle cx="200" cy="205" r="1.4"/>
+              <circle cx="188" cy="215" r="1.4"/>
+              <circle cx="200" cy="219" r="1.4"/>
+              <circle cx="212" cy="215" r="1.4"/>
+              <circle cx="181" cy="231" r="1.4"/>
+              <circle cx="219" cy="231" r="1.4"/>
+            </g>
+
+            <!-- Center glow dot (breathing) -->
+            <circle cx="200" cy="200" r="3.5" fill="#00F5FF" filter="url(#fx-cx)">
+              <animate attributeName="r"       values="2.5;4.8;2.5" dur="2.8s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.9;0.4;0.9"  dur="2.8s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SCREEN: REGISTER
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-register" class="screen">
+    <div class="sub-screen">
+
+      <!-- Header -->
+      <div class="sub-header">
+        <button class="back-btn" id="reg-back">← BACK</button>
+        <span class="sub-title">CREATE ACCOUNT</span>
+        <span class="sub-step" id="reg-step-label">STEP 1 OF 2</span>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-track">
+        <div class="progress-fill" id="reg-progress"></div>
+      </div>
+
+      <!-- Body -->
+      <div class="reg-body">
+
+        <!-- Left: form -->
+        <div class="reg-left">
+          <div class="section-label">Personal Information</div>
+
+          <div class="field-group">
+            <label class="field-label">FIRST NAME</label>
+            <input class="field-input" type="text" id="reg-first" autocomplete="off">
+          </div>
+          <div class="field-group">
+            <label class="field-label">LAST NAME</label>
+            <input class="field-input" type="text" id="reg-last" autocomplete="off">
+          </div>
+          <div class="field-group">
+            <label class="field-label">DATE OF BIRTH (YYYY-MM-DD)</label>
+            <input class="field-input" type="text" id="reg-dob" placeholder="1990-01-15" autocomplete="off">
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="section-label">Face Capture</div>
+
+          <p class="pose-instr" id="reg-pose-instr">Look straight at the camera</p>
+
+          <div class="pose-dots-row">
+            <div class="pose-dot-item">
+              <canvas class="pose-dot-canvas" id="pose-dot-0" width="10" height="10"></canvas>
+              <span class="pose-dot-tag">FRONTAL</span>
+            </div>
+          </div>
+
+          <p class="reg-status" id="reg-status">Position your face in the camera</p>
+
+          <div class="reg-btn-row">
+            <button class="btn-capture" id="reg-capture">CAPTURE &nbsp;1/1</button>
+            <button class="btn-primary reg-submit-btn" id="reg-submit" disabled>REGISTER</button>
+          </div>
+        </div>
+
+        <!-- Right: webcam -->
+        <div class="reg-right">
+          <div class="webcam-wrap" id="reg-cam-wrap">
+            <video id="reg-video" autoplay muted playsinline></video>
+            <canvas id="reg-overlay"></canvas>
+          </div>
+          <p class="cam-status" id="reg-cam-status">Waiting for camera…</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SCREEN: LOGIN
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-login" class="screen">
+    <div class="sub-screen">
+
+      <!-- Header -->
+      <div class="sub-header">
+        <button class="back-btn" id="login-back">← BACK</button>
+        <span class="sub-title">FACE AUTHENTICATION</span>
+        <div class="live-badge">● LIVE</div>
+      </div>
+
+      <!-- Video -->
+      <div class="login-video-wrap">
+        <video id="login-video" autoplay muted playsinline></video>
+        <canvas id="login-overlay"></canvas>
+      </div>
+
+      <!-- Status bar -->
+      <div class="login-bar">
+        <div class="conf-track">
+          <div class="conf-fill" id="conf-fill"></div>
+        </div>
+        <div class="login-bar-inner">
+          <span class="login-status" id="login-status">SCANNING…</span>
+          <span class="login-sys-label">NEXUS AUTH SYSTEM</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SCREEN: WELCOME
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-welcome" class="screen">
+    <div class="welcome-center">
+      <div class="welcome-sys">NEXUS AUTH SYSTEM</div>
+      <div class="welcome-divider"></div>
+      <div class="welcome-verified">IDENTITY VERIFIED</div>
+      <div class="welcome-check">✓</div>
+      <div class="welcome-back-lbl">WELCOME BACK</div>
+      <div class="welcome-name" id="welcome-name">—</div>
+      <div class="dob-card">
+        <div class="dob-card-rule"></div>
+        <div class="dob-card-inner">
+          <div class="dob-label">DATE OF BIRTH</div>
+          <div class="dob-value" id="welcome-dob">—</div>
+        </div>
+      </div>
+      <button class="btn-ghost" id="welcome-signout">SIGN OUT</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
