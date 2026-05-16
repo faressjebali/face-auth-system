@@ -15,6 +15,7 @@ A CSV summary is written to ``config.METRICS_CSV_PATH``.
 
 import csv
 import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -222,7 +223,11 @@ class Evaluator:
         bool
             ``True`` if ≥10 labelled samples were found.
         """
-        logs = read_logs(days=days)
+        today = datetime.now(tz=timezone.utc)
+        logs = []
+        for i in range(days):
+            date_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            logs.extend(read_logs(date_str))
         lbls, scrs = [], []
         for entry in logs:
             if "combined_score" not in entry or "is_genuine" not in entry:
