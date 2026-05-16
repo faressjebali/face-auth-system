@@ -252,10 +252,6 @@ class EnrollmentManager:
         """Return user IDs present in the deep gallery."""
         return list(self._gallery.keys())
 
-    def get_gallery(self) -> Dict[str, np.ndarray]:
-        """Return a copy of the deep embedding gallery."""
-        return dict(self._gallery)
-
     # ------------------------------------------------------------------
     def train_classical_models(self) -> Tuple[bool, bool]:
         """

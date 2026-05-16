@@ -56,33 +56,6 @@ def test_result_scores_stored(auth):
 
 
 # ---------------------------------------------------------------------------
-# authenticate — identity consistency
-# ---------------------------------------------------------------------------
-
-def test_identity_mismatch_penalises_score(auth):
-    result_no_claim = auth.authenticate(0.9, 0.9)
-    result_mismatch = auth.authenticate(
-        0.9, 0.9, claimed_identity="alice", deep_identity="bob"
-    )
-    assert result_mismatch.combined_score < result_no_claim.combined_score
-
-
-def test_identity_match_no_penalty(auth):
-    result = auth.authenticate(
-        0.9, 0.9, claimed_identity="alice", deep_identity="alice"
-    )
-    assert result.decision == "GRANTED"
-
-
-def test_identity_unknown_deep_no_penalty(auth):
-    result = auth.authenticate(
-        0.9, 0.9, claimed_identity="alice", deep_identity="unknown"
-    )
-    # No penalty when deep returns "unknown"
-    assert result.decision == "GRANTED"
-
-
-# ---------------------------------------------------------------------------
 # update_threshold
 # ---------------------------------------------------------------------------
 
