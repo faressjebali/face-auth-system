@@ -11,6 +11,7 @@ when passing pre-cropped patches from the preprocessing pipeline.
 """
 
 import logging
+import threading
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -19,6 +20,9 @@ from scipy.spatial.distance import cosine as cosine_distance
 import config
 
 logger = logging.getLogger(__name__)
+
+# TensorFlow / DeepFace are not thread-safe — serialize all inference calls.
+_tf_lock = threading.Lock()
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -90,12 +94,13 @@ class DeepFaceModel:
         try:
             from deepface import DeepFace  # deferred import (heavy)
 
-            result = DeepFace.represent(
-                img_path=face_img,
-                model_name=self.backend,
-                enforce_detection=False,
-                detector_backend="skip",
-            )
+            with _tf_lock:
+                result = DeepFace.represent(
+                    img_path=face_img,
+                    model_name=self.backend,
+                    enforce_detection=False,
+                    detector_backend="skip",
+                )
             embedding = np.array(result[0]["embedding"], dtype=np.float32)
             # L2-normalise for cosine comparisons
             norm = np.linalg.norm(embedding)
