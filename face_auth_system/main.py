@@ -117,7 +117,7 @@ def cmd_auth(args) -> int:
     allowed, reason = security.check(args.user)
     if not allowed:
         print(f"[BLOCKED] {reason}")
-        m["log_security_alert"](args.user, "blocked", {"reason": reason})
+        m["log_security_alert"](args.user, "blocked", reason)
         return 1
 
     # ── Acquire image ──────────────────────────────────────────────────
@@ -157,7 +157,7 @@ def cmd_auth(args) -> int:
         if is_fake:
             print(f"[DENIED] Deepfake detected (score={fake_score:.3f}).")
             security.record_failure(args.user)
-            m["log_security_alert"](args.user, "deepfake", {"score": fake_score})
+            m["log_security_alert"](args.user, "deepfake", f"score={fake_score:.3f}")
             return 1
         logger.info("Deepfake check passed (score=%.3f).", fake_score)
 
@@ -216,14 +216,13 @@ def cmd_auth(args) -> int:
     result = m["Authenticator"]().authenticate(
         classical_score=classical_score,
         deep_score=deep_score,
-        claimed_identity=args.user,
         deep_identity=deep_identity,
     )
 
     m["log_auth_event"](
         user_id=args.user,
-        decision=result.decision,
-        combined_score=result.combined_score,
+        result=result.decision,
+        confidence=result.combined_score,
         classical_score=result.classical_score,
         deep_score=result.deep_score,
     )

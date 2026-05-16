@@ -16,7 +16,6 @@ ENROLLED_FACES_DIR: Path = DATA_DIR / "enrolled_faces"
 LOGS_DIR: Path = DATA_DIR / "logs"
 MODELS_DIR: Path = PROJECT_ROOT / "models"
 VAULT_DIR: Path = DATA_DIR / "vault"
-KEYS_DIR: Path = DATA_DIR / "keys"
 EVALUATION_OUTPUT_DIR: Path = PROJECT_ROOT / "evaluation"
 
 # Dlib landmark model – download separately and place at project root
@@ -34,7 +33,6 @@ FACE_MIN_SIZE: tuple = (30, 30)
 # Preprocessing / Image Dimensions
 # ---------------------------------------------------------------------------
 IMAGE_SIZE: tuple = (128, 128)      # (width, height)
-LANDMARK_COUNT: int = 68
 
 # ---------------------------------------------------------------------------
 # Classical Model
@@ -97,11 +95,6 @@ VAULT_COSINE_THRESHOLD: float = 0.80   # Similarity required for vault verify
 # ---------------------------------------------------------------------------
 PROJECTION_INPUT_DIM: int = 512        # FaceNet / ArcFace embedding size
 PROJECTION_OUTPUT_DIM: int = 256       # Reduced protected template dimension
-
-# ---------------------------------------------------------------------------
-# Privacy
-# ---------------------------------------------------------------------------
-CONSENT_FILE: Path = DATA_DIR / "consent.json"
 
 # ---------------------------------------------------------------------------
 # Logging

@@ -126,7 +126,6 @@ class Authenticator:
         self,
         classical_score: float,
         deep_score: float,
-        claimed_identity: Optional[str] = None,
         deep_identity: Optional[str] = None,
     ) -> AuthResult:
         """
@@ -138,9 +137,6 @@ class Authenticator:
             Confidence from classical pipeline in [0, 1].
         deep_score : float
             Similarity from deep-learning pipeline in [0, 1].
-        claimed_identity : str, optional
-            User identifier supplied by the claimant (e.g., from a card
-            or typed username).
         deep_identity : str, optional
             Best-match identity returned by the deep model gallery lookup.
 
@@ -152,20 +148,8 @@ class Authenticator:
         combined = self.fuse_scores(classical_score, deep_score)
         granted = combined >= self.threshold
 
-        # Identity consistency check: if a claimed identity is provided
-        # and the deep model returns a different identity, downgrade score.
-        if claimed_identity and deep_identity:
-            if claimed_identity != deep_identity and deep_identity != "unknown":
-                combined *= 0.5  # penalty for identity mismatch
-                granted = combined >= self.threshold
-                logger.warning(
-                    "Identity mismatch: claimed='%s', deep='%s'. Score penalised.",
-                    claimed_identity,
-                    deep_identity,
-                )
-
         decision = "GRANTED" if granted else "DENIED"
-        matched = claimed_identity or deep_identity or "unknown"
+        matched = deep_identity or "unknown"
 
         detail = (
             f"fused={combined:.3f} threshold={self.threshold:.3f} "
