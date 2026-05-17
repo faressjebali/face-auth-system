@@ -1,9 +1,11 @@
 'use strict';
 
 // ── Config ─────────────────────────────────────────────────────────────────
-const MODEL_URL         = 'https://vladmandic.github.io/face-api/model/';
-const MATCH_THRESHOLD   = 0.50;   // euclidean distance (lower = stricter)
-const CONFIRM_NEEDED    = 3;      // consecutive matching frames before login
+const MODEL_URL       = 'https://vladmandic.github.io/face-api/model/';
+const MATCH_THRESHOLD = 0.50;  // euclidean distance (lower = stricter)
+const CONFIRM_NEEDED  = 3;     // consecutive matching frames before login
+// Smaller inputSize = faster inference (224 vs 320 cuts time ~2x)
+const DET_OPTS = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
 
 // ── UserStore (localStorage) ───────────────────────────────────────────────
 class UserStore {
@@ -42,9 +44,8 @@ class UserStore {
     this._saveGallery();
   }
 
-  getUser(uid) { return this._users[uid] || null; }
-
-  hasUsers() { return Object.keys(this._gallery).length > 0; }
+  getUser(uid)  { return this._users[uid] || null; }
+  hasUsers()    { return Object.keys(this._gallery).length > 0; }
 
   findBestMatch(descriptor) {
     let bestUid = null, bestDist = Infinity;
@@ -72,8 +73,7 @@ let modelsLoaded = false;
     W = canvas.width  = innerWidth;
     H = canvas.height = innerHeight;
     pts = Array.from({ length: COUNT }, () => ({
-      x:  Math.random() * W,
-      y:  Math.random() * H,
+      x:  Math.random() * W,  y:  Math.random() * H,
       vx: (Math.random() - 0.5) * 0.28,
       vy: (Math.random() - 0.5) * 0.28,
       r:  Math.random() * 1.2 + 0.5,
@@ -89,8 +89,7 @@ let modelsLoaded = false;
     }
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
-        const dx = pts[i].x - pts[j].x;
-        const dy = pts[i].y - pts[j].y;
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
         const d  = Math.hypot(dx, dy);
         if (d < DIST) {
           ctx.beginPath();
@@ -115,11 +114,8 @@ let modelsLoaded = false;
 
 // ── Status cycling ─────────────────────────────────────────────────────────
 const STATUS_SEQ = [
-  'INITIALIZING',
-  'LOADING NEURAL MODELS',
-  'SCANNING ENVIRONMENT',
-  'CALIBRATING SENSORS',
-  'SYSTEM READY',
+  'INITIALIZING', 'LOADING NEURAL MODELS', 'SCANNING ENVIRONMENT',
+  'CALIBRATING SENSORS', 'SYSTEM READY',
 ];
 let statusIdx = 0;
 const statusEl = document.getElementById('status-text');
@@ -129,15 +125,14 @@ function cycleStatus() {
   const next = modelsLoaded ? STATUS_SEQ.length - 1 : (statusIdx + 1) % (STATUS_SEQ.length - 1);
   if (next === statusIdx && modelsLoaded) return;
   statusIdx = next;
-  statusEl.style.opacity   = '0';
+  statusEl.style.opacity = '0';
   statusEl.style.transform = 'translateY(-8px)';
   setTimeout(() => {
-    statusEl.textContent     = STATUS_SEQ[statusIdx];
-    statusEl.style.opacity   = '1';
+    statusEl.textContent  = STATUS_SEQ[statusIdx];
+    statusEl.style.opacity = '1';
     statusEl.style.transform = 'translateY(0)';
   }, 260);
 }
-
 setTimeout(() => setInterval(cycleStatus, 2500), 1800);
 
 // ── Model loading ──────────────────────────────────────────────────────────
@@ -149,10 +144,9 @@ async function loadModels() {
   ]);
   modelsLoaded = true;
 }
-
 loadModels().catch(err => console.error('Model load failed:', err));
 
-// ── Wipe transition ────────────────────────────────────────────────────────
+// ── Wipe / Toast ───────────────────────────────────────────────────────────
 function triggerWipe() {
   const el = document.getElementById('wipe');
   el.classList.remove('fire');
@@ -160,7 +154,6 @@ function triggerWipe() {
   el.classList.add('fire');
 }
 
-// ── Toast ──────────────────────────────────────────────────────────────────
 function showToast(msg, ms = 2700) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -185,19 +178,20 @@ function drawBrackets(ctx, x, y, w, h, color) {
   ctx.lineWidth   = 2;
   ctx.lineCap     = 'square';
   ctx.beginPath();
-  ctx.moveTo(x,         y + blen); ctx.lineTo(x,         y); ctx.lineTo(x + blen, y);
-  ctx.moveTo(x + w - blen, y);     ctx.lineTo(x + w,     y); ctx.lineTo(x + w,    y + blen);
-  ctx.moveTo(x,         y + h - blen); ctx.lineTo(x,     y + h); ctx.lineTo(x + blen, y + h);
-  ctx.moveTo(x + w - blen, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w,    y + h - blen);
+  ctx.moveTo(x,             y + blen);   ctx.lineTo(x,         y);   ctx.lineTo(x + blen,     y);
+  ctx.moveTo(x + w - blen, y);           ctx.lineTo(x + w,     y);   ctx.lineTo(x + w,         y + blen);
+  ctx.moveTo(x,             y + h - blen); ctx.lineTo(x,       y + h); ctx.lineTo(x + blen,   y + h);
+  ctx.moveTo(x + w - blen, y + h);       ctx.lineTo(x + w,   y + h); ctx.lineTo(x + w,       y + h - blen);
   ctx.stroke();
 }
 
 function syncOverlay(video, canvas) {
-  canvas.width  = video.videoWidth  || 640;
-  canvas.height = video.videoHeight || 480;
+  const w = video.videoWidth  || 640;
+  const h = video.videoHeight || 480;
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w; canvas.height = h;
+  }
 }
-
-const DET_OPTS = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
 
 // ══════════════════════════════════════════════════════════════════
 // HOME SCREEN
@@ -209,8 +203,7 @@ document.getElementById('btn-create').addEventListener('click', function (e) {
   const r    = document.createElement('span');
   r.className = 'ripple';
   Object.assign(r.style, {
-    width:  size + 'px',
-    height: size + 'px',
+    width:  size + 'px', height: size + 'px',
     left:   (e.clientX - rect.left - size / 2) + 'px',
     top:    (e.clientY - rect.top  - size / 2) + 'px',
   });
@@ -220,15 +213,11 @@ document.getElementById('btn-create').addEventListener('click', function (e) {
 });
 
 document.getElementById('btn-create').addEventListener('mouseenter', function () {
-  const btn    = this;
+  const btn = this;
   const frames = [
-    'hue-rotate(-14deg) brightness(1.09)',
-    'hue-rotate(7deg)   brightness(1.05)',
-    'hue-rotate(-5deg)  brightness(1.07)',
-    'none',
-    'hue-rotate(9deg)   brightness(1.04)',
-    'hue-rotate(-2deg)',
-    'none',
+    'hue-rotate(-14deg) brightness(1.09)', 'hue-rotate(7deg) brightness(1.05)',
+    'hue-rotate(-5deg) brightness(1.07)',   'none',
+    'hue-rotate(9deg) brightness(1.04)',    'hue-rotate(-2deg)', 'none',
   ];
   let f = 0;
   (function step() {
@@ -245,20 +234,21 @@ document.getElementById('btn-login').addEventListener('click', function () {
   const spinner = document.createElement('span');
   spinner.className = 'spinner';
   btn.appendChild(spinner);
-  setTimeout(() => {
-    spinner.remove();
-    btn.classList.remove('is-loading');
-    goLogin();
-  }, 1200);
+  setTimeout(() => { spinner.remove(); btn.classList.remove('is-loading'); goLogin(); }, 1200);
 });
 
 // ══════════════════════════════════════════════════════════════════
 // REGISTER SCREEN
+// Key: draw loop (RAF, 60fps) and detect loop (setInterval, 200ms)
+// run independently so detection never blocks the UI.
 // ══════════════════════════════════════════════════════════════════
-let regStream        = null;
-let regDetectHandle  = null;
-let regCaptures      = [];
-let regCaptured      = false;
+let regStream      = null;
+let regDrawHandle  = null;
+let regDetectTimer = null;
+let regLastBox     = null;  // cached result from last detection
+let regDetecting   = false;
+let regCaptures    = [];
+let regCaptured    = false;
 
 function goRegister() {
   resetRegisterState();
@@ -268,16 +258,13 @@ function goRegister() {
 }
 
 function resetRegisterState() {
-  regCaptures  = [];
-  regCaptured  = false;
-  const first  = document.getElementById('reg-first');
-  const last   = document.getElementById('reg-last');
-  const dob    = document.getElementById('reg-dob');
-  if (first) first.value = '';
-  if (last)  last.value  = '';
-  if (dob)   dob.value   = '';
+  regCaptures = []; regCaptured = false; regLastBox = null;
+  ['reg-first', 'reg-last', 'reg-dob'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   document.getElementById('reg-capture').disabled = false;
-  document.getElementById('reg-capture').textContent = 'CAPTURE  1/1';
+  document.getElementById('reg-capture').textContent = 'CAPTURE  1/1';
   document.getElementById('reg-submit').disabled = true;
   document.getElementById('reg-pose-instr').textContent = 'Look straight at the camera';
   document.getElementById('reg-step-label').textContent = 'STEP 1 OF 2';
@@ -289,47 +276,63 @@ function resetRegisterState() {
 async function startRegCam() {
   stopRegCam();
   try {
-    regStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    regStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 640, height: 480 },
+    });
     const video = document.getElementById('reg-video');
     video.srcObject = regStream;
     await video.play();
-    runRegDetection();
-  } catch (e) {
+    startRegDrawLoop();
+    startRegDetectLoop();
+  } catch {
     setRegCamStatus('Camera access denied', 'var(--error)');
   }
 }
 
-async function runRegDetection() {
-  const video   = document.getElementById('reg-video');
+// 60fps: only redraws the cached box — never awaits anything
+function startRegDrawLoop() {
   const overlay = document.getElementById('reg-overlay');
+  const video   = document.getElementById('reg-video');
   const ctx     = overlay.getContext('2d');
 
-  async function loop() {
+  function draw() {
     if (!document.getElementById('screen-register').classList.contains('active')) return;
     syncOverlay(video, overlay);
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-    if (modelsLoaded && video.readyState >= 2) {
-      const det = await faceapi.detectSingleFace(video, DET_OPTS);
-      if (det) {
-        drawBrackets(ctx, det.box.x, det.box.y, det.box.width, det.box.height, '#00F5FF');
-        if (!regCaptured) setRegCamStatus('Face detected — ready to capture', 'var(--success)');
-      } else {
-        if (!regCaptured) setRegCamStatus('No face detected', 'var(--text-dim)');
-      }
-    } else if (!modelsLoaded) {
-      setRegCamStatus('Loading AI models…', 'var(--warn)');
+    if (regLastBox) {
+      const { x, y, width: w, height: h } = regLastBox;
+      drawBrackets(ctx, x, y, w, h, '#00F5FF');
     }
-
-    regDetectHandle = requestAnimationFrame(loop);
+    regDrawHandle = requestAnimationFrame(draw);
   }
-  loop();
+  draw();
+}
+
+// Every 200ms: runs detection, updates cached box — never blocks RAF
+function startRegDetectLoop() {
+  regDetectTimer = setInterval(async () => {
+    if (!document.getElementById('screen-register').classList.contains('active')) return;
+    if (regDetecting || regCaptured) return;
+    const video = document.getElementById('reg-video');
+    if (!modelsLoaded) { setRegCamStatus('Loading AI models…', 'var(--warn)'); return; }
+    if (video.readyState < 2) return;
+    regDetecting = true;
+    try {
+      const det  = await faceapi.detectSingleFace(video, DET_OPTS);
+      regLastBox = det ? det.box : null;
+      setRegCamStatus(
+        det ? 'Face detected — ready to capture' : 'No face detected',
+        det ? 'var(--success)' : 'var(--text-dim)'
+      );
+    } finally {
+      regDetecting = false;
+    }
+  }, 200);
 }
 
 async function captureRegFace() {
   if (regCaptured) return;
   if (!modelsLoaded) { setRegStatus('AI models still loading — please wait.', 'var(--warn)'); return; }
-
   const video = document.getElementById('reg-video');
   if (!video.srcObject) { setRegStatus('Camera not available.', 'var(--error)'); return; }
 
@@ -340,13 +343,11 @@ async function captureRegFace() {
     .withFaceLandmarks(true)
     .withFaceDescriptor();
 
-  if (!result) {
-    setRegStatus('No face detected — try again.', 'var(--error)');
-    return;
-  }
+  if (!result) { setRegStatus('No face detected — try again.', 'var(--error)'); return; }
 
   regCaptures.push(result.descriptor);
   regCaptured = true;
+  regLastBox  = null;
 
   paintDot('pose-dot-0', '#2adf80');
   document.getElementById('reg-capture').disabled = true;
@@ -362,76 +363,58 @@ async function submitRegistration() {
   const firstName = document.getElementById('reg-first').value.trim();
   const lastName  = document.getElementById('reg-last').value.trim();
   const dob       = document.getElementById('reg-dob').value.trim();
-
   if (!firstName || !lastName) { setRegStatus('First and last name are required.', 'var(--error)'); return; }
-  if (!dob)                     { setRegStatus('Date of birth is required.', 'var(--error)'); return; }
-  if (regCaptures.length === 0) { setRegStatus('Capture your face first.', 'var(--error)'); return; }
+  if (!dob)                     { setRegStatus('Date of birth is required.',         'var(--error)'); return; }
+  if (!regCaptures.length)      { setRegStatus('Capture your face first.',           'var(--error)'); return; }
 
   const uid = store.create(firstName, lastName, dob);
   for (const desc of regCaptures) store.addFace(uid, desc);
-
   stopRegCam();
   showToast('ACCOUNT CREATED SUCCESSFULLY');
   setTimeout(() => showScreen('screen-home'), 500);
 }
 
 function stopRegCam() {
-  if (regDetectHandle) { cancelAnimationFrame(regDetectHandle); regDetectHandle = null; }
-  if (regStream)       { regStream.getTracks().forEach(t => t.stop()); regStream = null; }
+  if (regDrawHandle)  { cancelAnimationFrame(regDrawHandle);  regDrawHandle  = null; }
+  if (regDetectTimer) { clearInterval(regDetectTimer);         regDetectTimer = null; }
+  if (regStream)      { regStream.getTracks().forEach(t => t.stop()); regStream = null; }
 }
 
 function updateRegProgress(step) {
-  const pct = (step / 2) * 100 + '%';
-  document.getElementById('reg-progress').style.width = pct;
+  document.getElementById('reg-progress').style.width = (step / 2 * 100) + '%';
 }
-
-function setRegStatus(msg, color) {
-  const el = document.getElementById('reg-status');
-  el.textContent   = msg;
-  el.style.color   = color;
-}
-
-function setRegCamStatus(msg, color) {
-  const el = document.getElementById('reg-cam-status');
-  el.textContent = msg;
-  el.style.color = color;
-}
+function setRegStatus(msg, color)    { const el = document.getElementById('reg-status');     el.textContent = msg; el.style.color = color; }
+function setRegCamStatus(msg, color) { const el = document.getElementById('reg-cam-status'); el.textContent = msg; el.style.color = color; }
 
 function paintDot(id, fill) {
-  const c   = document.getElementById(id);
+  const c = document.getElementById(id);
   if (!c) return;
   const ctx = c.getContext('2d');
   ctx.clearRect(0, 0, 10, 10);
-  ctx.beginPath();
-  ctx.arc(5, 5, 4, 0, Math.PI * 2);
-  ctx.fillStyle = fill;
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(5, 5, 4, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
 }
 
-document.getElementById('reg-back').addEventListener('click', () => {
-  stopRegCam();
-  showScreen('screen-home');
-});
+document.getElementById('reg-back').addEventListener('click',    () => { stopRegCam(); showScreen('screen-home'); });
 document.getElementById('reg-capture').addEventListener('click', captureRegFace);
-document.getElementById('reg-submit').addEventListener('click', submitRegistration);
+document.getElementById('reg-submit').addEventListener('click',  submitRegistration);
 
 // ══════════════════════════════════════════════════════════════════
 // LOGIN SCREEN
+// Same pattern: draw loop (RAF) + detect loop (setInterval 150ms)
 // ══════════════════════════════════════════════════════════════════
-let loginStream       = null;
-let loginDetectHandle = null;
-let loginDone         = false;
-let confirmUid        = null;
-let confirmCount      = 0;
+let loginStream      = null;
+let loginDrawHandle  = null;
+let loginDetectTimer = null;
+let loginLastResult  = null;  // { box, match } cached from last detection
+let loginDetecting   = false;
+let loginDone        = false;
+let confirmUid       = null;
+let confirmCount     = 0;
 
 function goLogin() {
-  if (!store.hasUsers()) {
-    showToast('NO ACCOUNTS FOUND — CREATE AN ACCOUNT FIRST');
-    return;
-  }
-  loginDone    = false;
-  confirmUid   = null;
-  confirmCount = 0;
+  if (!store.hasUsers()) { showToast('NO ACCOUNTS FOUND — CREATE AN ACCOUNT FIRST'); return; }
+  loginDone = false; confirmUid = null; confirmCount = 0; loginLastResult = null;
   document.getElementById('conf-fill').style.width = '0';
   setLoginStatus('SCANNING…', 'var(--text-dim)');
   showScreen('screen-login');
@@ -441,108 +424,107 @@ function goLogin() {
 async function startLoginCam() {
   stopLoginCam();
   try {
-    loginStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    loginStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 640, height: 480 },
+    });
     const video = document.getElementById('login-video');
     video.srcObject = loginStream;
     await video.play();
-    runLoginDetection();
-  } catch (e) {
+    startLoginDrawLoop();
+    startLoginDetectLoop();
+  } catch {
     setLoginStatus('CAMERA NOT FOUND', 'var(--error)');
   }
 }
 
-async function runLoginDetection() {
-  const video   = document.getElementById('login-video');
+// 60fps: redraws cached overlay — never awaits anything
+function startLoginDrawLoop() {
   const overlay = document.getElementById('login-overlay');
+  const video   = document.getElementById('login-video');
   const ctx     = overlay.getContext('2d');
 
-  async function loop() {
+  function draw() {
     if (loginDone || !document.getElementById('screen-login').classList.contains('active')) return;
-
     syncOverlay(video, overlay);
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-    if (!modelsLoaded) {
-      setLoginStatus('LOADING AI MODELS…', 'var(--warn)');
-      loginDetectHandle = requestAnimationFrame(loop);
-      return;
+    if (loginLastResult) {
+      const { box, match } = loginLastResult;
+      const color = match ? '#2adf80' : '#ff2255';
+      drawBrackets(ctx, box.x, box.y, box.width, box.height, color);
     }
+    loginDrawHandle = requestAnimationFrame(draw);
+  }
+  draw();
+}
 
-    if (video.readyState < 2) {
-      loginDetectHandle = requestAnimationFrame(loop);
-      return;
-    }
+// Every 150ms: runs full detection + recognition, updates cache
+function startLoginDetectLoop() {
+  loginDetectTimer = setInterval(async () => {
+    if (loginDone || !document.getElementById('screen-login').classList.contains('active')) return;
+    if (loginDetecting) return;
+    const video = document.getElementById('login-video');
+    if (!modelsLoaded) { setLoginStatus('LOADING AI MODELS…', 'var(--warn)'); return; }
+    if (video.readyState < 2) return;
 
-    const result = await faceapi
-      .detectSingleFace(video, DET_OPTS)
-      .withFaceLandmarks(true)
-      .withFaceDescriptor();
+    loginDetecting = true;
+    try {
+      const result = await faceapi
+        .detectSingleFace(video, DET_OPTS)
+        .withFaceLandmarks(true)
+        .withFaceDescriptor();
 
-    if (!result) {
-      drawBrackets(ctx, overlay.width / 2 - 80, overlay.height / 2 - 80, 160, 160, 'rgba(74,90,114,0.4)');
-      setLoginStatus('SCANNING…', 'var(--text-dim)');
-      confirmUid   = null;
-      confirmCount = 0;
-      document.getElementById('conf-fill').style.width = '0';
-      loginDetectHandle = requestAnimationFrame(loop);
-      return;
-    }
-
-    const match = store.findBestMatch(result.descriptor);
-
-    if (match) {
-      const user = store.getUser(match.uid);
-      const name = user ? `${user.firstName} ${user.lastName}` : 'UNKNOWN';
-      const sim  = Math.round((1 - match.dist) * 100);
-
-      drawBrackets(ctx, result.box.x, result.box.y, result.box.width, result.box.height, '#2adf80');
-      setLoginStatus(`${name.toUpperCase()}  ${sim}%`, '#00F5FF');
-
-      if (match.uid === confirmUid) {
-        confirmCount++;
-      } else {
-        confirmUid   = match.uid;
-        confirmCount = 1;
-      }
-
-      const pct = Math.min(confirmCount / CONFIRM_NEEDED, 1);
-      document.getElementById('conf-fill').style.width = (pct * 100) + '%';
-
-      if (confirmCount >= CONFIRM_NEEDED && !loginDone) {
-        loginDone = true;
-        stopLoginCam();
-        goWelcome(match.uid);
+      if (!result) {
+        loginLastResult = null;
+        setLoginStatus('SCANNING…', 'var(--text-dim)');
+        confirmUid = null; confirmCount = 0;
+        document.getElementById('conf-fill').style.width = '0';
         return;
       }
-    } else {
-      drawBrackets(ctx, result.box.x, result.box.y, result.box.width, result.box.height, '#ff2255');
-      setLoginStatus('FACE NOT RECOGNISED', 'var(--error)');
-      confirmUid   = null;
-      confirmCount = 0;
-      document.getElementById('conf-fill').style.width = '0';
+
+      const match = store.findBestMatch(result.descriptor);
+      loginLastResult = { box: result.box, match };
+
+      if (match) {
+        const user = store.getUser(match.uid);
+        const name = user ? `${user.firstName} ${user.lastName}` : 'UNKNOWN';
+        const sim  = Math.round((1 - match.dist) * 100);
+        setLoginStatus(`${name.toUpperCase()}  ${sim}%`, '#00F5FF');
+
+        if (match.uid === confirmUid) { confirmCount++; }
+        else { confirmUid = match.uid; confirmCount = 1; }
+
+        document.getElementById('conf-fill').style.width =
+          (Math.min(confirmCount / CONFIRM_NEEDED, 1) * 100) + '%';
+
+        if (confirmCount >= CONFIRM_NEEDED && !loginDone) {
+          loginDone = true;
+          stopLoginCam();
+          goWelcome(match.uid);
+        }
+      } else {
+        setLoginStatus('FACE NOT RECOGNISED', 'var(--error)');
+        confirmUid = null; confirmCount = 0;
+        document.getElementById('conf-fill').style.width = '0';
+      }
+    } finally {
+      loginDetecting = false;
     }
-
-    loginDetectHandle = requestAnimationFrame(loop);
-  }
-
-  loop();
+  }, 150);
 }
 
 function stopLoginCam() {
-  if (loginDetectHandle) { cancelAnimationFrame(loginDetectHandle); loginDetectHandle = null; }
-  if (loginStream)       { loginStream.getTracks().forEach(t => t.stop()); loginStream = null; }
+  if (loginDrawHandle)  { cancelAnimationFrame(loginDrawHandle);  loginDrawHandle  = null; }
+  if (loginDetectTimer) { clearInterval(loginDetectTimer);         loginDetectTimer = null; }
+  if (loginStream)      { loginStream.getTracks().forEach(t => t.stop()); loginStream = null; }
 }
 
 function setLoginStatus(msg, color) {
   const el = document.getElementById('login-status');
-  el.textContent = msg;
-  el.style.color = color;
+  el.textContent = msg; el.style.color = color;
 }
 
 document.getElementById('login-back').addEventListener('click', () => {
-  loginDone = true;
-  stopLoginCam();
-  showScreen('screen-home');
+  loginDone = true; stopLoginCam(); showScreen('screen-home');
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -557,9 +539,7 @@ function goWelcome(uid) {
   showScreen('screen-welcome');
 }
 
-document.getElementById('welcome-signout').addEventListener('click', () => {
-  showScreen('screen-home');
-});
+document.getElementById('welcome-signout').addEventListener('click', () => showScreen('screen-home'));
 
-// ── Draw initial pose dot ──────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────
 paintDot('pose-dot-0', '#1a2030');
